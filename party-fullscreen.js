@@ -400,12 +400,10 @@
             box-shadow: 0 28px 60px rgba(0,0,0,0.8), 0 0 35px var(--party-primary-20);
             border: 1px solid rgba(255, 255, 255, 0.12);
             object-fit: cover;
-            transition: transform 0.25s ease-out, box-shadow 0.4s ease, max-width 0.5s ease, max-height 0.5s ease !important;
-            will-change: transform;
+            transition: box-shadow 0.4s ease, max-width 0.5s ease, max-height 0.5s ease !important;
         }
 
         .party-cover:hover {
-            transform: scale(1.025);
             box-shadow: 0 32px 70px rgba(0,0,0,0.9), 0 0 45px var(--party-primary-40);
         }
         #party-fs-overlay.lyrics-collapsed .party-cover,
@@ -1330,22 +1328,7 @@
     }
 
     function initCoverTilt() {
-        const wrap = document.getElementById("cover-wrap");
-        const cover = document.getElementById("p-cover");
-        if (!wrap || !cover) return;
-
-        wrap.onmousemove = (e) => {
-            const rect = wrap.getBoundingClientRect();
-            const x = e.clientX - rect.left - (rect.width / 2);
-            const y = e.clientY - rect.top - (rect.height / 2);
-            const tiltX = (y / (rect.height / 2)) * -8;
-            const tiltY = (x / (rect.width / 2)) * 8;
-            cover.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale(1.025)`;
-        };
-
-        wrap.onmouseleave = () => {
-            cover.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)`;
-        };
+        // 3D Tilt disabled
     }
 
     function triggerSparkleBurst() {
