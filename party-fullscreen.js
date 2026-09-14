@@ -50,6 +50,7 @@
     }
 
     let queueObserver = null;
+    let playerResizeObserver = null;
 
     const existingOverlay = document.getElementById("party-fs-overlay");
     if (existingOverlay) {
@@ -120,8 +121,22 @@
         .party-fs-bg.active-bg {
             opacity: 0.55;
         }
+        #party-fs-overlay.ambient-off {
+            background: #000000 !important;
+        }
         #party-fs-overlay.ambient-off .party-fs-bg {
             opacity: 0 !important;
+            display: none !important;
+        }
+        #party-fs-overlay.ambient-off .party-cover-wrapper::after {
+            opacity: 0 !important;
+        }
+        #party-fs-overlay.ambient-off .col-player,
+        #party-fs-overlay.ambient-off .col-lyrics,
+        #party-fs-overlay.ambient-off .col-queue {
+            background: transparent !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
         }
 
         /* --- AUTO-HIDE INACTIVITY CONTROLS --- */
@@ -131,6 +146,7 @@
         #party-fs-overlay.idle-hidden #fs-close-btn,
         #party-fs-overlay.idle-hidden .party-clock,
         #party-fs-overlay.idle-hidden .ambient-btn-container,
+        #party-fs-overlay.idle-hidden .party-cover-eq-wrap,
         #party-fs-overlay.idle-hidden .party-controls,
         #party-fs-overlay.idle-hidden .progress-container,
         #party-fs-overlay.idle-hidden .volume-container {
@@ -165,7 +181,12 @@
         #party-fs-overlay.lyrics-collapsed,
         #party-fs-overlay.lyrics-off,
         #party-fs-overlay.no-lyrics {
-            grid-template-columns: 1.2fr 0px 1fr !important;
+            grid-template-columns: 1fr 0px 1fr !important;
+        }
+        #party-fs-overlay.lyrics-collapsed .col-player,
+        #party-fs-overlay.lyrics-off .col-player,
+        #party-fs-overlay.no-lyrics .col-player {
+            border-right: none !important;
         }
         /* Step 1: fade out content first before grid collapses */
         #party-fs-overlay.lyrics-hiding .col-lyrics {
@@ -199,8 +220,13 @@
             -webkit-backdrop-filter: blur(20px) saturate(180%);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.15);
             gap: 4px;
-            margin-bottom: 25px;
+            margin-bottom: 12px;
             z-index: 10;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .ambient-btn-container.single-btn {
+            border-radius: 50% !important;
+            gap: 0px !important;
         }
         .btn-ambient-top {
             background: transparent;
@@ -222,6 +248,9 @@
         #btn-ambient-toggle {
             border-radius: 21px 4px 4px 21px;
             transition: all 0.2s ease, border-radius 0.3s ease;
+        }
+        .ambient-btn-container.single-btn #btn-ambient-toggle {
+            border-radius: 50% !important;
         }
         #btn-karaoke-toggle {
             border-radius: 4px 21px 21px 4px;
@@ -419,13 +448,21 @@
             text-decoration: underline;
         }
 
-        /* Live Title Equalizer */
+        /* Centered Cover Live Equalizer */
+        .party-cover-eq-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 22px;
+            margin-bottom: 12px;
+            z-index: 10;
+        }
         .party-title-eq {
             display: inline-flex;
             align-items: flex-end;
-            gap: 3px;
+            gap: 4px;
             height: 18px;
-            margin-left: 14px;
+            padding: 0 4px;
             flex-shrink: 0;
             vertical-align: middle;
         }
@@ -434,15 +471,53 @@
             border-radius: 2px;
             background: var(--party-primary);
             box-shadow: 0 0 8px var(--party-primary);
-            transition: background 1s ease;
+            transition: background 1s ease, height 0.2s ease, opacity 0.3s ease;
         }
-        .party-title-eq span:nth-child(1) { height: 100%; animation: eqAnim1 0.85s ease-in-out infinite alternate; }
-        .party-title-eq span:nth-child(2) { height: 60%; animation: eqAnim2 0.65s ease-in-out infinite alternate 0.2s; }
-        .party-title-eq span:nth-child(3) { height: 85%; animation: eqAnim3 0.75s ease-in-out infinite alternate 0.35s; }
+        .party-title-eq span:nth-child(1) { height: 45%; animation: eqOrganic1 1.25s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+        .party-title-eq span:nth-child(2) { height: 85%; animation: eqOrganic2 0.95s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+        .party-title-eq span:nth-child(3) { height: 60%; animation: eqOrganic3 1.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+        .party-title-eq span:nth-child(4) { height: 75%; animation: eqOrganic4 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
         .party-title-eq.paused span {
             animation: none !important;
-            height: 30% !important;
-            opacity: 0.45;
+            height: 4px !important;
+            opacity: 0.35;
+        }
+
+        @keyframes eqOrganic1 {
+            0%   { height: 25%; }
+            18%  { height: 90%; }
+            35%  { height: 40%; }
+            55%  { height: 100%; }
+            72%  { height: 30%; }
+            88%  { height: 70%; }
+            100% { height: 25%; }
+        }
+        @keyframes eqOrganic2 {
+            0%   { height: 80%; }
+            22%  { height: 20%; }
+            40%  { height: 95%; }
+            58%  { height: 50%; }
+            75%  { height: 85%; }
+            90%  { height: 35%; }
+            100% { height: 80%; }
+        }
+        @keyframes eqOrganic3 {
+            0%   { height: 40%; }
+            15%  { height: 85%; }
+            32%  { height: 25%; }
+            50%  { height: 75%; }
+            68%  { height: 30%; }
+            85%  { height: 100%; }
+            100% { height: 40%; }
+        }
+        @keyframes eqOrganic4 {
+            0%   { height: 65%; }
+            25%  { height: 30%; }
+            45%  { height: 90%; }
+            62%  { height: 20%; }
+            80%  { height: 75%; }
+            92%  { height: 45%; }
+            100% { height: 65%; }
         }
         
         .is-scrolling #p-title, 
@@ -450,8 +525,8 @@
             animation: scrollLinearMarquee var(--scroll-dur, 6s) linear infinite alternate;
         }
         @keyframes scrollLinearMarquee {
-            0%, 10% { transform: translateX(0); }
-            90%, 100% { transform: translateX(var(--scroll-dist)); }
+            0%, 18% { transform: translateX(0); }
+            82%, 100% { transform: translateX(var(--scroll-dist)); }
         }
         
         .progress-container {
@@ -734,6 +809,7 @@
             filter: blur(1.5px);
             cursor: pointer;
             transform-origin: center;
+            max-width: 90%;
         }
         .lyric-line.next-up {
             opacity: 0.65;
@@ -762,8 +838,7 @@
         }
         .lyric-line.active {
             opacity: 1;
-            transform: scale(1.1);
-            font-weight: 800;
+            transform: scale(1.08);
             filter: blur(0) drop-shadow(0 0 22px var(--party-primary-80)) drop-shadow(0 4px 14px rgba(0,0,0,0.6));
             transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, filter 1s ease !important;
         }
@@ -837,10 +912,28 @@
         }
         
         .party-queue-wrapper { background: transparent; border-radius: 16px; padding: 24px; box-shadow: none; margin-top: 71px; }
-        .party-queue-item { display: flex; align-items: center; gap: 16px; padding: 0; margin-bottom: 32px; border: none; background: transparent; flex-shrink: 0; position: relative; transition: background 0.2s ease, transform 0.25s ease !important; --glow-color: red; --next-glow-color: red; --mix-color: red; }
+        .party-queue-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 16px; 
+            padding: 8px 12px; 
+            margin-bottom: 18px; 
+            border: 1px solid transparent; 
+            border-radius: 14px; 
+            background: transparent; 
+            flex-shrink: 0; 
+            position: relative; 
+            box-sizing: border-box;
+            transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease !important; 
+            --glow-color: red; --next-glow-color: red; --mix-color: red; 
+        }
         .party-queue-item:first-child { margin-top: 15px; }
-        .party-queue-item.clickable:hover { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08); transform: translateX(6px) !important; border-radius: 14px; padding: 6px 12px; }
-        .party-queue-item.clickable:hover .party-queue-info { opacity: 0.8; }
+        .party-queue-item.clickable { cursor: pointer; }
+        .party-queue-item.clickable:hover { 
+            background: rgba(255, 255, 255, 0.07); 
+            border-color: rgba(255, 255, 255, 0.1); 
+        }
+        .party-queue-item.clickable:hover .party-queue-info { opacity: 0.95; }
         .party-queue-item.slide-up { transform: translateY(-80px) !important; transition: transform 0.38s cubic-bezier(0.25, 1, 0.5, 1) !important; }
         .party-queue-item.slide-out { animation: queueItemOut 0.38s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; }
         @keyframes queueItemOut { 0% { transform: translateX(0) scale(1); opacity: 1; } 100% { transform: translateX(-50px) scale(0.95); opacity: 0; } }
@@ -1077,17 +1170,22 @@
     }
 
     function updateKaraokeBtnVisibility() {
+        const container = document.querySelector(".ambient-btn-container");
         const btn = document.getElementById("btn-karaoke-toggle");
         const ambientBtn = document.getElementById("btn-ambient-toggle");
+        const show = lyricsEnabled && isLyricsSynced;
+        if (container) {
+            container.classList.toggle("single-btn", !show);
+        }
         if (btn) {
-            const show = lyricsEnabled && isLyricsSynced;
+            btn.style.display = show ? "flex" : "none";
             btn.style.opacity = show ? "1" : "0";
             btn.style.pointerEvents = show ? "auto" : "none";
             btn.style.transform = show ? "scale(1)" : "scale(0.8)";
             btn.style.maxWidth = show ? "44px" : "0px";
-            if (ambientBtn) {
-                ambientBtn.style.borderRadius = show ? "22px 4px 4px 22px" : "22px";
-            }
+        }
+        if (ambientBtn) {
+            ambientBtn.style.borderRadius = show ? "21px 4px 4px 21px" : "50%";
         }
     } 
     let currentLyricsLines = [];
@@ -1274,9 +1372,13 @@
         const isPlayingNow = typeof Player.isPlaying === "function" ? Player.isPlaying() : !Player.data?.isPaused;
 
         pCol.innerHTML = `
-            <div class="ambient-btn-container">
-                <button class="btn-ambient-top ${ambientEnabled ? 'btn-active' : ''}" id="btn-ambient-toggle" title="Ambiente Glow" style="border-radius: ${lyricsEnabled && isLyricsSynced ? '22px 4px 4px 22px' : '22px'};">${Icons.ambient}</button>
-                <button class="btn-ambient-top ${isKaraokeEnabled ? 'btn-active' : ''}" id="btn-karaoke-toggle" title="Karaoke Modus" style="transition: all 0.4s ease; overflow: hidden; opacity: ${lyricsEnabled && isLyricsSynced ? 1 : 0}; pointer-events: ${lyricsEnabled && isLyricsSynced ? 'auto' : 'none'}; transform: scale(${lyricsEnabled && isLyricsSynced ? 1 : 0.8}); max-width: ${lyricsEnabled && isLyricsSynced ? '44px' : '0px'};">${Icons.karaoke}</button>
+            <div class="ambient-btn-container ${lyricsEnabled && isLyricsSynced ? '' : 'single-btn'}">
+                <button class="btn-ambient-top ${ambientEnabled ? 'btn-active' : ''}" id="btn-ambient-toggle" title="Ambiente Glow" style="border-radius: ${lyricsEnabled && isLyricsSynced ? '21px 4px 4px 21px' : '50%'};">${Icons.ambient}</button>
+                <button class="btn-ambient-top ${isKaraokeEnabled ? 'btn-active' : ''}" id="btn-karaoke-toggle" title="Karaoke Modus" style="transition: all 0.4s ease; overflow: hidden; opacity: ${lyricsEnabled && isLyricsSynced ? 1 : 0}; pointer-events: ${lyricsEnabled && isLyricsSynced ? 'auto' : 'none'}; transform: scale(${lyricsEnabled && isLyricsSynced ? 1 : 0.8}); max-width: ${lyricsEnabled && isLyricsSynced ? '44px' : '0px'}; display: ${lyricsEnabled && isLyricsSynced ? 'flex' : 'none'};">${Icons.karaoke}</button>
+            </div>
+
+            <div class="party-cover-eq-wrap">
+                <div class="party-title-eq ${isPlayingNow ? '' : 'paused'}" id="p-title-eq"><span></span><span></span><span></span><span></span></div>
             </div>
 
             <div class="party-cover-wrapper" id="cover-wrap">
@@ -1285,7 +1387,7 @@
             
             <div class="party-meta">
                 <div class="scroll-wrap">
-                    <div class="party-title" id="p-title" onclick="Spicetify.Platform.History.push('${(trackInfo.albumUri || trackInfo.uri).replace('spotify:', '/').replace(/:/g, '/')}'); document.getElementById('party-fs-overlay').classList.remove('active');" style="cursor: pointer;" title="Zum Album gehen">${escapeHtml(trackInfo.title)}<div class="party-title-eq ${isPlayingNow ? '' : 'paused'}" id="p-title-eq"><span></span><span></span><span></span></div></div>
+                    <div class="party-title" id="p-title" onclick="Spicetify.Platform.History.push('${(trackInfo.albumUri || trackInfo.uri).replace('spotify:', '/').replace(/:/g, '/')}'); document.getElementById('party-fs-overlay').classList.remove('active');" style="cursor: pointer;" title="Zum Album gehen">${escapeHtml(trackInfo.title)}</div>
                 </div>
                 <div class="scroll-wrap">
                     <div class="party-artist" id="p-artist">
@@ -1329,21 +1431,11 @@
 
         initCoverTilt();
 
-        setTimeout(() => {
-            ["p-title", "p-artist"].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    const wrap = el.parentElement;
-                    if (el.scrollWidth > wrap.clientWidth) {
-                        wrap.classList.add("is-scrolling");
-                        const dist = (el.scrollWidth - wrap.clientWidth) + Math.round(wrap.clientWidth * 0.15);
-                        const duration = dist / 35;
-                        el.style.setProperty("--scroll-dist", `-${dist}px`);
-                        el.style.setProperty("--scroll-dur", `${duration}s`);
-                    }
-                }
-            });
-        }, 50);
+        requestAnimationFrame(() => {
+            updateMarquee();
+            setTimeout(updateMarquee, 300);
+            setTimeout(updateMarquee, 950);
+        });
 
         document.getElementById("btn-shuffle").onclick = () => { 
             Player.toggleShuffle(); 
@@ -1488,31 +1580,41 @@
         syncControlStates();
     }
 
+    function updateSingleMarquee(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const wrap = el.parentElement;
+        if (!wrap) return;
+
+        wrap.classList.remove("is-scrolling");
+        el.style.animation = "none";
+        el.style.transform = "";
+        void el.offsetWidth;
+
+        const textWidth = el.scrollWidth;
+        const containerWidth = wrap.clientWidth;
+
+        if (textWidth > containerWidth + 6) {
+            wrap.classList.add("is-scrolling");
+            const dist = textWidth - containerWidth + 14;
+            const scrollSecs = Math.max(3.5, dist / 32);
+            const totalDur = scrollSecs + 2.5;
+
+            el.style.setProperty("--scroll-dist", `-${dist}px`);
+            el.style.setProperty("--scroll-dur", `${totalDur}s`);
+            el.style.animation = "";
+        } else {
+            wrap.classList.remove("is-scrolling");
+            el.style.removeProperty("--scroll-dist");
+            el.style.removeProperty("--scroll-dur");
+            el.style.animation = "none";
+        }
+    }
+
     function updateMarquee() {
         if (!overlay.classList.contains("active")) return;
-        ["p-title", "p-artist"].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                const wrap = el.parentElement;
-                if (wrap.dataset.checked !== el.innerText) {
-                    wrap.classList.remove("is-scrolling");
-                    el.style.animation = 'none';
-                    
-                    void el.offsetWidth;
-                    
-                    if (el.scrollWidth > wrap.clientWidth) {
-                        wrap.classList.add("is-scrolling");
-                        const dist = (el.scrollWidth - wrap.clientWidth) + Math.round(wrap.clientWidth * 0.15);
-                        const duration = dist / 35;
-                        
-                        el.style.setProperty("--scroll-dist", `-${dist}px`);
-                        el.style.setProperty("--scroll-dur", `${duration}s`);
-                        el.style.animation = '';
-                    }
-                    wrap.dataset.checked = el.innerText;
-                }
-            }
-        });
+        updateSingleMarquee("p-title");
+        updateSingleMarquee("p-artist");
     }
 
     function renderLyrics(lines) {
@@ -1587,6 +1689,120 @@
         }
     }
 
+    function parseLrcToLines(lrcText) {
+        if (!lrcText) return [];
+        const lines = lrcText.split("\n");
+        const result = [];
+        const timestampRegex = /\[(\d{1,2}):(\d{2}(?:\.\d+)?)\]/;
+
+        for (const rawLine of lines) {
+            const trimmed = rawLine.trim();
+            if (!trimmed) continue;
+            const match = trimmed.match(timestampRegex);
+            if (match) {
+                const min = parseInt(match[1], 10);
+                const sec = parseFloat(match[2]);
+                const startMs = Math.round((min * 60 + sec) * 1000);
+                const words = trimmed.replace(timestampRegex, "").trim();
+                if (words) {
+                    result.push({
+                        startTimeMs: startMs.toString(),
+                        words: words
+                    });
+                }
+            }
+        }
+        return result;
+    }
+
+    async function fetchLrclibLyrics(trackInfo) {
+        try {
+            const title = trackInfo.title || "";
+            const artist = (trackInfo.artists && trackInfo.artists[0]?.name) || "";
+            const album = trackInfo.album || "";
+            const durationSec = Math.round(Player.getDuration() / 1000) || 0;
+            
+            let queryUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
+            if (album) {
+                queryUrl += `&album_name=${encodeURIComponent(album)}`;
+            }
+            if (durationSec > 0) {
+                queryUrl += `&duration=${durationSec}`;
+            }
+            
+            const resp = await fetch(queryUrl);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.syncedLyrics) {
+                    const lines = parseLrcToLines(data.syncedLyrics);
+                    if (lines.length > 0) return lines;
+                }
+                if (data.plainLyrics) {
+                    const plainLines = data.plainLyrics.split("\n").map(l => l.trim()).filter(Boolean);
+                    if (plainLines.length > 0) {
+                        return plainLines.map(words => ({ startTimeMs: "0", words }));
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn("PartyFullscreen: LRCLIB fetch failed", e);
+        }
+        return null;
+    }
+
+    async function fetchSpotifyLyrics(trackId) {
+        if (!trackId) return null;
+        const url = `https://spclient.wg.spotify.com/color-lyrics/v2/track/${trackId}?format=json&vocalRemoval=false&market=from_token`;
+        
+        let token = "";
+        try {
+            if (Spicetify.Platform?.AuthorizationAPI?.getAccessToken) {
+                token = await Spicetify.Platform.AuthorizationAPI.getAccessToken();
+            }
+        } catch (_) {}
+        if (!token) {
+            try {
+                if (Spicetify.Platform?.Session?.accessToken) {
+                    token = Spicetify.Platform.Session.accessToken;
+                }
+            } catch (_) {}
+        }
+
+        const headers = {
+            "app-platform": "WebPlayer"
+        };
+        if (token) {
+            headers["authorization"] = `Bearer ${token}`;
+        }
+
+        try {
+            const resp = await fetch(url, { headers });
+            if (resp.ok) {
+                const data = await resp.json();
+                const lines = data?.lyrics?.lines;
+                if (Array.isArray(lines) && lines.length > 0) {
+                    return lines;
+                }
+            }
+        } catch (e) {
+            console.warn("PartyFullscreen: fetch color-lyrics error", e);
+        }
+
+        try {
+            if (Spicetify.CosmosAsync?.get) {
+                const data = await Spicetify.CosmosAsync.get(url, null, headers);
+                const lines = data?.lyrics?.lines;
+                if (Array.isArray(lines) && lines.length > 0) {
+                    return lines;
+                }
+            }
+        } catch (e) {
+            console.warn("PartyFullscreen: CosmosAsync color-lyrics error", e);
+        }
+
+        return null;
+    }
+
     async function fetchAndRenderLyrics() {
         if (!lyricsEnabled) {
             overlay.classList.add("lyrics-off");
@@ -1595,8 +1811,6 @@
             return;
         }
 
-        // Mark the old lyrics as "loading" by fading them out subtly
-        // but keep them visible until new ones arrive
         lyricsBox.style.transition = "opacity 0.3s ease";
         lyricsBox.style.opacity = "0.3";
         noLyricMsg.style.display = "none";
@@ -1606,7 +1820,6 @@
         activeWordEls = [];
         isLyricsSynced = false;
         lyricsBox.classList.remove("unsynced-linear");
-        // Do NOT collapse or clear yet – keep old lyrics dimmed during load
 
         const trackInfo = getTrackInfo();
         if (!trackInfo || !trackInfo.uri) {
@@ -1619,9 +1832,9 @@
             return;
         }
 
-        // Try Platform LyricsAPI first
+        // Try Platform LyricsAPI first if present
         try {
-            if (Spicetify.Platform?.LyricsAPI) {
+            if (Spicetify.Platform?.LyricsAPI?.getLyrics) {
                 const data = await Spicetify.Platform.LyricsAPI.getLyrics(trackInfo.uri);
                 const lines = data?.lyrics?.lines || data?.lines || [];
                 if (lines.length > 0) {
@@ -1630,22 +1843,22 @@
                 }
             }
         } catch (e) {
-            console.warn("Platform LyricsAPI failed, trying Cosmos color-lyrics fallback...", e);
+            console.warn("PartyFullscreen: Platform LyricsAPI failed", e);
         }
 
-        // Fallback to Cosmos color-lyrics API
-        try {
-            const trackId = trackInfo.uri.split(":")[2];
-            if (Spicetify.CosmosAsync) {
-                const lyricsData = await Spicetify.CosmosAsync.get(`https://spclient.wg.spotify.com/color-lyrics/v2/track/${trackId}?format=json&vocalRemoval=false`);
-                const lines = lyricsData?.lyrics?.lines || [];
-                if (lines.length > 0) {
-                    renderLyrics(lines);
-                    return;
-                }
-            }
-        } catch (e) {
-            console.error("Cosmos color-lyrics fallback failed", e);
+        const trackId = trackInfo.uri.split(":")[2];
+        
+        // 1. Try Spotify Official Color-Lyrics
+        let lines = await fetchSpotifyLyrics(trackId);
+        
+        // 2. If Spotify Official fails or has no lyrics, use LRCLIB fallback
+        if (!lines || lines.length === 0) {
+            lines = await fetchLrclibLyrics(trackInfo);
+        }
+
+        if (lines && lines.length > 0) {
+            renderLyrics(lines);
+            return;
         }
 
         // No lyrics found
@@ -2525,10 +2738,23 @@
             startTimers();
             syncQueuePoller();
             resetIdleTimer();
+
+            if (!playerResizeObserver && pCol) {
+                playerResizeObserver = new ResizeObserver(() => {
+                    if (overlay.classList.contains("active")) {
+                        updateMarquee();
+                    }
+                });
+                playerResizeObserver.observe(pCol);
+            }
         } else {
             stopTimers();
             clearTimeout(idleTimer);
             overlay.classList.remove("idle-hidden");
+            if (playerResizeObserver) {
+                playerResizeObserver.disconnect();
+                playerResizeObserver = null;
+            }
             // If the native route is still parked on the fullscreen page,
             // go back so Spotify doesn't sit on a dead route behind us.
             const p = Spicetify.Platform?.History?.location?.pathname || "";
@@ -2743,6 +2969,7 @@
     window.__partyFsCleanup = () => {
         stopTimers();
         if (queueObserver) queueObserver.disconnect();
+        if (playerResizeObserver) playerResizeObserver.disconnect();
         document.removeEventListener("click", interceptFsEvent, true);
         document.removeEventListener("mousedown", interceptFsEvent, true);
         document.removeEventListener("pointerdown", interceptFsEvent, true);
