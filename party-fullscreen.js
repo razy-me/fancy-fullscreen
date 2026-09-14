@@ -63,6 +63,9 @@
 
     const overlay = document.createElement("div");
     overlay.id = "party-fs-overlay";
+    if (!ambientEnabled) {
+        overlay.classList.add("ambient-off");
+    }
     document.body.appendChild(overlay);
 
     const style = document.createElement("style");
@@ -123,18 +126,36 @@
         }
         #party-fs-overlay.ambient-off {
             background: #000000 !important;
+            background-color: #000000 !important;
+            background-image: none !important;
         }
         #party-fs-overlay.ambient-off .party-fs-bg {
             opacity: 0 !important;
             display: none !important;
+            visibility: hidden !important;
         }
         #party-fs-overlay.ambient-off .party-cover-wrapper::after {
             opacity: 0 !important;
+            display: none !important;
+        }
+        #party-fs-overlay.ambient-off .party-cover {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
         }
         #party-fs-overlay.ambient-off .col-player,
         #party-fs-overlay.ambient-off .col-lyrics,
         #party-fs-overlay.ambient-off .col-queue {
-            background: transparent !important;
+            background: #000000 !important;
+            background-color: #000000 !important;
+            background-image: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            border-color: rgba(255, 255, 255, 0.05) !important;
+        }
+        #party-fs-overlay.ambient-off .ambient-btn-container,
+        #party-fs-overlay.ambient-off .party-controls {
+            background: rgba(20, 20, 20, 0.8) !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8) !important;
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
         }
@@ -2728,6 +2749,7 @@
     function toggleFullscreen() {
         overlay.classList.toggle("active");
         if (overlay.classList.contains("active")) {
+            overlay.classList.toggle("ambient-off", !ambientEnabled);
             const trackInfo = getTrackInfo();
             buildPlayerUI();
             buildQueueUI();
