@@ -1,3 +1,3 @@
-# party-fullscreen
+# fancy-fullscreen
 
-Spicetify extension: party-fullscreen
+Spicetify extension: fancy-fullscreen

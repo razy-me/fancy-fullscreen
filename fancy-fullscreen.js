@@ -1,4 +1,4 @@
-(async function PartyFullscreenPro() {
+(async function FancyFullscreenPro() {
     // Warten auf Spotify-Kernfunktionen
     while (!Spicetify?.Player || !Spicetify?.Topbar || !Spicetify?.Queue || !Spicetify?.Menu) {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -6,20 +6,20 @@
 
     const { Player, Queue, CosmosAsync } = Spicetify;
 
-    let isPartyFsEnabled = localStorage.getItem("party_fs_enabled") !== "false";
-    let lyricsEnabled = localStorage.getItem("party_fs_lyrics") !== "false";
-    let ambientEnabled = localStorage.getItem("party_fs_ambient") !== "false";
-    let isKaraokeEnabled = localStorage.getItem("party_fs_karaoke") === "true";
+    let isFancyFsEnabled = localStorage.getItem("fancy_fs_enabled") !== "false";
+    let lyricsEnabled = localStorage.getItem("fancy_fs_lyrics") !== "false";
+    let ambientEnabled = localStorage.getItem("fancy_fs_ambient") !== "false";
+    let isKaraokeEnabled = localStorage.getItem("fancy_fs_karaoke") === "true";
     let isLyricsSynced = true;
 
     
     const menuItem = new Spicetify.Menu.Item(
-        "Party Fullscreen",
-        isPartyFsEnabled,
+        "Fancy Fullscreen",
+        isFancyFsEnabled,
         () => {
-            isPartyFsEnabled = !isPartyFsEnabled;
-            localStorage.setItem("party_fs_enabled", isPartyFsEnabled.toString());
-            menuItem.isEnabled = isPartyFsEnabled;
+            isFancyFsEnabled = !isFancyFsEnabled;
+            localStorage.setItem("fancy_fs_enabled", isFancyFsEnabled.toString());
+            menuItem.isEnabled = isFancyFsEnabled;
         }
     );
     menuItem.register();
@@ -45,49 +45,49 @@
     const lyricsOffHTML = `Lyrics aus`;
     const noLyricsHTML = `Keine Lyrics vorhanden`;
 
-    if (typeof window.__partyFsCleanup === "function") {
-        try { window.__partyFsCleanup(); } catch (e) { console.error("PartyFullscreen cleanup:", e); }
+    if (typeof window.__fancyFsCleanup === "function") {
+        try { window.__fancyFsCleanup(); } catch (e) { console.error("FancyFullscreen cleanup:", e); }
     }
 
     let queueObserver = null;
     let playerResizeObserver = null;
 
-    const existingOverlay = document.getElementById("party-fs-overlay");
+    const existingOverlay = document.getElementById("fancy-fs-overlay");
     if (existingOverlay) {
         existingOverlay.remove();
     }
-    const existingStyle = document.getElementById("party-fs-styles");
+    const existingStyle = document.getElementById("fancy-fs-styles");
     if (existingStyle) {
         existingStyle.remove();
     }
 
     const overlay = document.createElement("div");
-    overlay.id = "party-fs-overlay";
+    overlay.id = "fancy-fs-overlay";
     if (!ambientEnabled) {
         overlay.classList.add("ambient-off");
     }
     document.body.appendChild(overlay);
 
     const style = document.createElement("style");
-    style.id = "party-fs-styles";
+    style.id = "fancy-fs-styles";
     style.innerHTML = `
         :root {
-            --party-primary: #1db954;
-            --party-primary-rgb: 29, 185, 84;
-            --party-primary-10: rgba(29, 185, 84, 0.10);
-            --party-primary-15: rgba(29, 185, 84, 0.15);
-            --party-primary-20: rgba(29, 185, 84, 0.20);
-            --party-primary-40: rgba(29, 185, 84, 0.40);
-            --party-primary-60: rgba(29, 185, 84, 0.60);
-            --party-primary-80: rgba(29, 185, 84, 0.80);
+            --fancy-primary: #1db954;
+            --fancy-primary-rgb: 29, 185, 84;
+            --fancy-primary-10: rgba(29, 185, 84, 0.10);
+            --fancy-primary-15: rgba(29, 185, 84, 0.15);
+            --fancy-primary-20: rgba(29, 185, 84, 0.20);
+            --fancy-primary-40: rgba(29, 185, 84, 0.40);
+            --fancy-primary-60: rgba(29, 185, 84, 0.60);
+            --fancy-primary-80: rgba(29, 185, 84, 0.80);
         }
-        #party-fs-overlay {
+        #fancy-fs-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: radial-gradient(circle at 25% 40%, rgba(var(--party-primary-rgb), 0.18) 0%, transparent 60%), radial-gradient(circle at 80% 60%, rgba(var(--party-primary-rgb), 0.10) 0%, transparent 55%), #060608;
+            background: radial-gradient(circle at 25% 40%, rgba(var(--fancy-primary-rgb), 0.18) 0%, transparent 60%), radial-gradient(circle at 80% 60%, rgba(var(--fancy-primary-rgb), 0.10) 0%, transparent 55%), #060608;
             z-index: 999999 !important;
             display: grid;
             grid-template-columns: 2fr 2.2fr 1.3fr;
@@ -99,13 +99,13 @@
             visibility: hidden;
             transition: opacity 0.4s ease, visibility 0.4s, grid-template-columns 0.9s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        #party-fs-overlay.active {
+        #fancy-fs-overlay.active {
             opacity: 1 !important;
             visibility: visible !important;
         }
 
         /* --- AMBIENTE BELEUCHTUNG (OPTIMIERT) --- */
-        .party-fs-bg {
+        .fancy-fs-bg {
             position: absolute;
             top: -20%; 
             left: -20%; 
@@ -121,30 +121,30 @@
             will-change: transform, opacity;
             transform: translate3d(0, 0, 0);
         }
-        .party-fs-bg.active-bg {
+        .fancy-fs-bg.active-bg {
             opacity: 0.55;
         }
-        #party-fs-overlay.ambient-off {
+        #fancy-fs-overlay.ambient-off {
             background: #000000 !important;
             background-color: #000000 !important;
             background-image: none !important;
         }
-        #party-fs-overlay.ambient-off .party-fs-bg {
+        #fancy-fs-overlay.ambient-off .fancy-fs-bg {
             opacity: 0 !important;
             display: none !important;
             visibility: hidden !important;
         }
-        #party-fs-overlay.ambient-off .party-cover-wrapper::after {
+        #fancy-fs-overlay.ambient-off .fancy-cover-wrapper::after {
             opacity: 0 !important;
             display: none !important;
         }
-        #party-fs-overlay.ambient-off .party-cover {
+        #fancy-fs-overlay.ambient-off .fancy-cover {
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9) !important;
             border-color: rgba(255, 255, 255, 0.08) !important;
         }
-        #party-fs-overlay.ambient-off .col-player,
-        #party-fs-overlay.ambient-off .col-lyrics,
-        #party-fs-overlay.ambient-off .col-queue {
+        #fancy-fs-overlay.ambient-off .col-player,
+        #fancy-fs-overlay.ambient-off .col-lyrics,
+        #fancy-fs-overlay.ambient-off .col-queue {
             background: #000000 !important;
             background-color: #000000 !important;
             background-image: none !important;
@@ -152,8 +152,8 @@
             -webkit-backdrop-filter: none !important;
             border-color: rgba(255, 255, 255, 0.05) !important;
         }
-        #party-fs-overlay.ambient-off .ambient-btn-container,
-        #party-fs-overlay.ambient-off .party-controls {
+        #fancy-fs-overlay.ambient-off .ambient-btn-container,
+        #fancy-fs-overlay.ambient-off .fancy-controls {
             background: rgba(20, 20, 20, 0.8) !important;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8) !important;
             backdrop-filter: none !important;
@@ -161,35 +161,35 @@
         }
 
         /* --- AUTO-HIDE INACTIVITY CONTROLS --- */
-        #party-fs-overlay.idle-hidden {
+        #fancy-fs-overlay.idle-hidden {
             cursor: none;
         }
-        #party-fs-overlay.idle-hidden #fs-close-btn,
-        #party-fs-overlay.idle-hidden .party-clock,
-        #party-fs-overlay.idle-hidden .ambient-btn-container,
-        #party-fs-overlay.idle-hidden .party-cover-eq-wrap,
-        #party-fs-overlay.idle-hidden .party-controls,
-        #party-fs-overlay.idle-hidden .progress-container,
-        #party-fs-overlay.idle-hidden .volume-container {
+        #fancy-fs-overlay.idle-hidden #fs-close-btn,
+        #fancy-fs-overlay.idle-hidden .fancy-clock,
+        #fancy-fs-overlay.idle-hidden .ambient-btn-container,
+        #fancy-fs-overlay.idle-hidden .fancy-cover-eq-wrap,
+        #fancy-fs-overlay.idle-hidden .fancy-controls,
+        #fancy-fs-overlay.idle-hidden .progress-container,
+        #fancy-fs-overlay.idle-hidden .volume-container {
             opacity: 0 !important;
             pointer-events: none !important;
             transition: opacity 0.75s ease;
         }
-        #party-fs-overlay.idle-hidden .party-meta {
+        #fancy-fs-overlay.idle-hidden .fancy-meta {
             transform: scale(1.18);
             margin-bottom: 35px;
         }
-        #party-fs-overlay.idle-hidden .party-title {
+        #fancy-fs-overlay.idle-hidden .fancy-title {
             font-size: 2.85rem;
             text-shadow: 0 6px 30px rgba(0,0,0,0.9);
         }
-        #party-fs-overlay.idle-hidden .party-artist {
+        #fancy-fs-overlay.idle-hidden .fancy-artist {
             font-size: 1.65rem;
             color: rgba(255, 255, 255, 0.85);
             margin-top: 8px;
         }
 
-        .party-queue-duration {
+        .fancy-queue-duration {
             font-size: 0.85rem;
             color: rgba(255, 255, 255, 0.4);
             margin-left: auto;
@@ -199,25 +199,25 @@
         }
         
         /* --- ADAPTIVES 2-SPALTEN / 3-SPALTEN GRID --- */
-        #party-fs-overlay.lyrics-collapsed,
-        #party-fs-overlay.lyrics-off,
-        #party-fs-overlay.no-lyrics {
+        #fancy-fs-overlay.lyrics-collapsed,
+        #fancy-fs-overlay.lyrics-off,
+        #fancy-fs-overlay.no-lyrics {
             grid-template-columns: 1fr 0px 1fr !important;
         }
-        #party-fs-overlay.lyrics-collapsed .col-player,
-        #party-fs-overlay.lyrics-off .col-player,
-        #party-fs-overlay.no-lyrics .col-player {
+        #fancy-fs-overlay.lyrics-collapsed .col-player,
+        #fancy-fs-overlay.lyrics-off .col-player,
+        #fancy-fs-overlay.no-lyrics .col-player {
             border-right: none !important;
         }
         /* Step 1: fade out content first before grid collapses */
-        #party-fs-overlay.lyrics-hiding .col-lyrics {
+        #fancy-fs-overlay.lyrics-hiding .col-lyrics {
             opacity: 0 !important;
             pointer-events: none !important;
         }
         /* Step 2: fully hidden after grid collapse */
-        #party-fs-overlay.lyrics-collapsed .col-lyrics,
-        #party-fs-overlay.lyrics-off .col-lyrics,
-        #party-fs-overlay.no-lyrics .col-lyrics {
+        #fancy-fs-overlay.lyrics-collapsed .col-lyrics,
+        #fancy-fs-overlay.lyrics-off .col-lyrics,
+        #fancy-fs-overlay.no-lyrics .col-lyrics {
             opacity: 0 !important;
             visibility: hidden !important;
             pointer-events: none !important;
@@ -288,9 +288,9 @@
             background: rgba(255, 255, 255, 0.1);
         }
         .btn-ambient-top.btn-active {
-            color: var(--party-primary) !important;
-            background: var(--party-primary-15) !important;
-            box-shadow: 0 0 12px var(--party-primary-20);
+            color: var(--fancy-primary) !important;
+            background: var(--fancy-primary-15) !important;
+            box-shadow: 0 0 12px var(--fancy-primary-20);
             transition: all 0.2s ease, color 1s ease, background-color 1s ease !important;
         }
 
@@ -326,7 +326,7 @@
             width: 22px;
             height: 22px;
         }
-        .party-clock {
+        .fancy-clock {
             position: absolute;
             top: 45px;
             left: 50%;
@@ -368,7 +368,7 @@
             transition: all 0.5s ease !important;
         }
 
-        .party-cover-wrapper {
+        .fancy-cover-wrapper {
             position: relative;
             display: flex;
             justify-content: center;
@@ -376,20 +376,20 @@
             perspective: 1000px;
             margin-bottom: 25px;
         }
-        .party-cover-wrapper::after {
+        .fancy-cover-wrapper::after {
             content: '';
             position: absolute;
             bottom: -22px;
             width: 78%;
             height: 28px;
             border-radius: 50%;
-            background: var(--party-primary);
+            background: var(--fancy-primary);
             filter: blur(30px);
             opacity: 0.5;
             z-index: -1;
             transition: background 1s ease, opacity 0.4s ease;
         }
-        .party-cover {
+        .fancy-cover {
             width: 40vh;
             height: 40vh;
             max-width: 380px;
@@ -397,23 +397,23 @@
             min-width: 200px;
             min-height: 200px;
             border-radius: 20px;
-            box-shadow: 0 28px 60px rgba(0,0,0,0.8), 0 0 35px var(--party-primary-20);
+            box-shadow: 0 28px 60px rgba(0,0,0,0.8), 0 0 35px var(--fancy-primary-20);
             border: 1px solid rgba(255, 255, 255, 0.12);
             object-fit: cover;
             transition: box-shadow 0.4s ease, max-width 0.5s ease, max-height 0.5s ease !important;
         }
 
-        .party-cover:hover {
-            box-shadow: 0 32px 70px rgba(0,0,0,0.9), 0 0 45px var(--party-primary-40);
+        .fancy-cover:hover {
+            box-shadow: 0 32px 70px rgba(0,0,0,0.9), 0 0 45px var(--fancy-primary-40);
         }
-        #party-fs-overlay.lyrics-collapsed .party-cover,
-        #party-fs-overlay.lyrics-off .party-cover,
-        #party-fs-overlay.no-lyrics .party-cover {
+        #fancy-fs-overlay.lyrics-collapsed .fancy-cover,
+        #fancy-fs-overlay.lyrics-off .fancy-cover,
+        #fancy-fs-overlay.no-lyrics .fancy-cover {
             max-width: 48vh;
             max-height: 48vh;
         }
         
-        .party-meta {
+        .fancy-meta {
             text-align: center;
             width: 100%;
             max-width: 85%;
@@ -436,7 +436,7 @@
             mask-image: linear-gradient(to right, black 85%, transparent 100%);
             -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
         }
-        .party-title {
+        .fancy-title {
             font-size: 2.3rem;
             font-weight: 800;
             white-space: nowrap;
@@ -447,7 +447,7 @@
             align-items: center;
             transition: font-size 0.6s cubic-bezier(0.16, 1, 0.3, 1), text-shadow 0.6s ease;
         }
-        .party-artist {
+        .fancy-artist {
             font-size: 1.35rem;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.7);
@@ -468,7 +468,7 @@
         }
 
         /* Centered Cover Live Equalizer */
-        .party-cover-eq-wrap {
+        .fancy-cover-eq-wrap {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -476,7 +476,7 @@
             margin-bottom: 12px;
             z-index: 10;
         }
-        .party-title-eq {
+        .fancy-title-eq {
             display: inline-flex;
             align-items: flex-end;
             gap: 4px;
@@ -485,18 +485,18 @@
             flex-shrink: 0;
             vertical-align: middle;
         }
-        .party-title-eq span {
+        .fancy-title-eq span {
             width: 3.5px;
             border-radius: 2px;
-            background: var(--party-primary);
-            box-shadow: 0 0 8px var(--party-primary);
+            background: var(--fancy-primary);
+            box-shadow: 0 0 8px var(--fancy-primary);
             transition: background 1s ease, height 0.2s ease, opacity 0.3s ease;
         }
-        .party-title-eq span:nth-child(1) { height: 45%; animation: eqOrganic1 1.25s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
-        .party-title-eq span:nth-child(2) { height: 85%; animation: eqOrganic2 0.95s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
-        .party-title-eq span:nth-child(3) { height: 60%; animation: eqOrganic3 1.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
-        .party-title-eq span:nth-child(4) { height: 75%; animation: eqOrganic4 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
-        .party-title-eq.paused span {
+        .fancy-title-eq span:nth-child(1) { height: 45%; animation: eqOrganic1 1.25s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+        .fancy-title-eq span:nth-child(2) { height: 85%; animation: eqOrganic2 0.95s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+        .fancy-title-eq span:nth-child(3) { height: 60%; animation: eqOrganic3 1.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+        .fancy-title-eq span:nth-child(4) { height: 75%; animation: eqOrganic4 1.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite; }
+        .fancy-title-eq.paused span {
             animation: none !important;
             height: 4px !important;
             opacity: 0.35;
@@ -577,7 +577,7 @@
             top: -34px;
             transform: translateX(-50%);
             background: rgba(18, 18, 24, 0.9);
-            border: 1px solid var(--party-primary);
+            border: 1px solid var(--fancy-primary);
             padding: 3px 8px;
             border-radius: 6px;
             font-size: 0.8rem;
@@ -598,8 +598,8 @@
             width: 100%;
             transform-origin: left;
             transform: scaleX(0);
-            background: var(--party-primary);
-            box-shadow: 0 0 14px var(--party-primary-80);
+            background: var(--fancy-primary);
+            box-shadow: 0 0 14px var(--fancy-primary-80);
             border-radius: 999px;
             transition: transform 0.1s linear, background 1s ease;
             position: relative;
@@ -625,7 +625,7 @@
         }
 
         /* --- FLOATING CONTROLS ISLAND --- */
-        .party-controls {
+        .fancy-controls {
             display: flex;
             gap: 12px;
             align-items: center;
@@ -682,9 +682,9 @@
             fill: #121212 !important;
         }
         .btn-active {
-            color: var(--party-primary) !important;
-            background: var(--party-primary-15) !important;
-            box-shadow: 0 0 12px var(--party-primary-20) !important;
+            color: var(--fancy-primary) !important;
+            background: var(--fancy-primary-15) !important;
+            box-shadow: 0 0 12px var(--fancy-primary-20) !important;
             transition: all 0.15s ease, color 1s ease, background-color 1s ease !important;
         }
         .btn-icon.btn-active::after {
@@ -695,9 +695,9 @@
             transform: translateX(-50%);
             width: 4px;
             height: 4px;
-            background: var(--party-primary);
+            background: var(--fancy-primary);
             border-radius: 50%;
-            box-shadow: 0 0 6px var(--party-primary);
+            box-shadow: 0 0 6px var(--fancy-primary);
         }
 
         /* --- LAUTSTÄRKE REGELER --- */
@@ -726,8 +726,8 @@
             width: 100%;
             transform-origin: left;
             transform: scaleX(0.5);
-            background: var(--party-primary);
-            box-shadow: 0 0 10px var(--party-primary-60);
+            background: var(--fancy-primary);
+            box-shadow: 0 0 10px var(--fancy-primary-60);
             border-radius: 999px;
             transition: background 1s ease;
             position: relative;
@@ -766,7 +766,7 @@
             top: -35px;
             transform: translateX(-50%);
             background: rgba(18, 18, 24, 0.9);
-            border: 1px solid var(--party-primary);
+            border: 1px solid var(--fancy-primary);
             padding: 4px 8px;
             border-radius: 6px;
             font-size: 0.8rem;
@@ -787,7 +787,7 @@
             margin-left: -5px;
             border-width: 5px;
             border-style: solid;
-            border-color: var(--party-primary) transparent transparent transparent;
+            border-color: var(--fancy-primary) transparent transparent transparent;
             transition: border-color 1s ease;
         }
         .volume-bar-bg:hover .volume-tooltip { opacity: 1; }
@@ -858,7 +858,7 @@
         .lyric-line.active {
             opacity: 1;
             transform: scale(1.08);
-            filter: blur(0) drop-shadow(0 0 22px var(--party-primary-80)) drop-shadow(0 4px 14px rgba(0,0,0,0.6));
+            filter: blur(0) drop-shadow(0 0 22px var(--fancy-primary-80)) drop-shadow(0 4px 14px rgba(0,0,0,0.6));
             transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, filter 1s ease !important;
         }
         .lyric-line.unsynced-style {
@@ -891,13 +891,13 @@
             left: 50%;
             transform: translateX(-50%);
             background: rgba(16, 16, 22, 0.85);
-            border: 1px solid var(--party-primary-60);
-            box-shadow: 0 0 24px var(--party-primary-40);
+            border: 1px solid var(--fancy-primary-60);
+            box-shadow: 0 0 24px var(--fancy-primary-40);
             padding: 8px 22px;
             border-radius: 999px;
             font-size: 0.95rem;
             font-weight: 700;
-            color: var(--party-primary);
+            color: var(--fancy-primary);
             backdrop-filter: blur(16px);
             z-index: 100;
             opacity: 0;
@@ -930,8 +930,8 @@
             display: none;
         }
         
-        .party-queue-wrapper { background: transparent; border-radius: 16px; padding: 24px; box-shadow: none; margin-top: 71px; }
-        .party-queue-item { 
+        .fancy-queue-wrapper { background: transparent; border-radius: 16px; padding: 24px; box-shadow: none; margin-top: 71px; }
+        .fancy-queue-item { 
             display: flex; 
             align-items: center; 
             gap: 16px; 
@@ -946,31 +946,31 @@
             transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease !important; 
             --glow-color: red; --next-glow-color: red; --mix-color: red; 
         }
-        .party-queue-item:first-child { margin-top: 15px; }
-        .party-queue-item.clickable { cursor: pointer; }
-        .party-queue-item.clickable:hover { 
+        .fancy-queue-item:first-child { margin-top: 15px; }
+        .fancy-queue-item.clickable { cursor: pointer; }
+        .fancy-queue-item.clickable:hover { 
             background: rgba(255, 255, 255, 0.07); 
             border-color: rgba(255, 255, 255, 0.1); 
         }
-        .party-queue-item.clickable:hover .party-queue-info { opacity: 0.95; }
-        .party-queue-item.slide-up { transform: translateY(-80px) !important; transition: transform 0.38s cubic-bezier(0.25, 1, 0.5, 1) !important; }
-        .party-queue-item.slide-out { animation: queueItemOut 0.38s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; }
+        .fancy-queue-item.clickable:hover .fancy-queue-info { opacity: 0.95; }
+        .fancy-queue-item.slide-up { transform: translateY(-80px) !important; transition: transform 0.38s cubic-bezier(0.25, 1, 0.5, 1) !important; }
+        .fancy-queue-item.slide-out { animation: queueItemOut 0.38s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; }
         @keyframes queueItemOut { 0% { transform: translateX(0) scale(1); opacity: 1; } 100% { transform: translateX(-50px) scale(0.95); opacity: 0; } }
         .glow-wrap { position: relative; width: 48px; height: 48px; z-index: 2; display: flex; justify-content: center; align-items: center; transition: transform 0.2s ease !important; }
         .glow-bg { position: absolute; width: 48px; height: 48px; border-radius: 6px; box-shadow: 0 0 20px 4px var(--glow-color); opacity: 0; z-index: 1; transition: opacity 0.3s ease, box-shadow 0.3s ease !important; pointer-events: none; }
-        .party-queue-cover { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; position: relative; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
-        .party-queue-info { display: flex; flex-direction: column; justify-content: center; min-height: 48px; flex-grow: 1; overflow: hidden; transition: transform 0.2s ease !important; transform-origin: left center; }
+        .fancy-queue-cover { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; position: relative; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
+        .fancy-queue-info { display: flex; flex-direction: column; justify-content: center; min-height: 48px; flex-grow: 1; overflow: hidden; transition: transform 0.2s ease !important; transform-origin: left center; }
         .particles-container { position: absolute; top: 50%; left: 50%; pointer-events: none; z-index: 0; overflow: visible; }
         .bridge-particles { position: absolute; top: 100%; left: 50%; pointer-events: none; z-index: 100; overflow: visible; }
-        .party-queue-item:hover .glow-wrap { transform: scale(1.05); }
-        .party-queue-item:hover .glow-bg { opacity: 0.9 !important; box-shadow: 0 0 25px 6px var(--glow-color); }
-        .party-queue-item:hover .party-queue-info { transform: scale(1.02); }
+        .fancy-queue-item:hover .glow-wrap { transform: scale(1.05); }
+        .fancy-queue-item:hover .glow-bg { opacity: 0.9 !important; box-shadow: 0 0 25px 6px var(--glow-color); }
+        .fancy-queue-item:hover .fancy-queue-info { transform: scale(1.02); }
         .particle { position: absolute; background: var(--glow-color); border-radius: 50%; }
-        .party-queue-item:not(.in-view) .particles-container, .party-queue-item:not(.in-view) .bridge-particles { visibility: hidden !important; animation: none !important; }
+        .fancy-queue-item:not(.in-view) .particles-container, .fancy-queue-item:not(.in-view) .bridge-particles { visibility: hidden !important; animation: none !important; }
         @keyframes wobble { 0% { transform: translate3d(0, 0, 0); opacity: 0.2; } 50% { opacity: 0.8; } 100% { transform: translate3d(var(--dx), var(--dy), 0); opacity: 0.2; } }
         @keyframes flowDown { 0% { transform: translate3d(var(--sx), 0, 0); opacity: 0; background: var(--glow-color); } 10% { opacity: 0.8; background: var(--glow-color); } 50% { transform: translate3d(0, 20px, 0); opacity: 0.8; background: var(--mix-color); } 90% { transform: translate3d(var(--ex), 36px, 0); opacity: 0.8; background: var(--next-glow-color); } 100% { transform: translate3d(var(--ex), 40px, 0); opacity: 0; background: var(--next-glow-color); } }
 
-        .party-queue-item.current .eq-bars {
+        .fancy-queue-item.current .eq-bars {
             display: flex;
             align-items: flex-end;
             gap: 3px;
@@ -978,15 +978,15 @@
             margin-left: 8px;
             flex-shrink: 0;
         }
-        .party-queue-item.current .eq-bars .bar {
+        .fancy-queue-item.current .eq-bars .bar {
             width: 3.5px;
-            background: var(--party-primary);
+            background: var(--fancy-primary);
             border-radius: 2px;
-            box-shadow: 0 0 8px var(--party-primary-80);
+            box-shadow: 0 0 8px var(--fancy-primary-80);
         }
-        .party-queue-item.current .eq-bars .bar1 { animation: eqAnim1 var(--eq-dur1, 1.1s) ease-in-out infinite alternate; }
-        .party-queue-item.current .eq-bars .bar2 { animation: eqAnim2 var(--eq-dur2, 1.5s) ease-in-out infinite alternate; }
-        .party-queue-item.current .eq-bars .bar3 { animation: eqAnim3 var(--eq-dur3, 1.3s) ease-in-out infinite alternate; }
+        .fancy-queue-item.current .eq-bars .bar1 { animation: eqAnim1 var(--eq-dur1, 1.1s) ease-in-out infinite alternate; }
+        .fancy-queue-item.current .eq-bars .bar2 { animation: eqAnim2 var(--eq-dur2, 1.5s) ease-in-out infinite alternate; }
+        .fancy-queue-item.current .eq-bars .bar3 { animation: eqAnim3 var(--eq-dur3, 1.3s) ease-in-out infinite alternate; }
         @keyframes eqAnim1 {
             0%   { height: 20%; }
             100% { height: 90%; }
@@ -1000,14 +1000,14 @@
             100% { height: 95%; }
         }
 
-        .party-queue-track {
+        .fancy-queue-track {
             font-weight: 600;
             font-size: 1.05rem;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .party-queue-item.current::before {
+        .fancy-queue-item.current::before {
             content: '';
             position: absolute;
             left: -12px;
@@ -1015,22 +1015,22 @@
             transform: translateY(-50%);
             width: 4px;
             height: 28px;
-            background: var(--party-primary);
+            background: var(--fancy-primary);
             border-radius: 2px;
-            box-shadow: 0 0 10px var(--party-primary-80);
+            box-shadow: 0 0 10px var(--fancy-primary-80);
             animation: currentSongGlow 2s infinite ease-in-out;
             transition: background 1s ease, box-shadow 1s ease;
         }
-        .party-queue-item.current .party-queue-track {
-            color: var(--party-primary);
+        .fancy-queue-item.current .fancy-queue-track {
+            color: var(--fancy-primary);
             transition: color 1s ease;
         }
         @keyframes currentSongGlow {
-            0% { opacity: 0.6; box-shadow: 0 0 6px var(--party-primary-60); }
-            50% { opacity: 1; box-shadow: 0 0 14px var(--party-primary-80); }
-            100% { opacity: 0.6; box-shadow: 0 0 6px var(--party-primary-60); }
+            0% { opacity: 0.6; box-shadow: 0 0 6px var(--fancy-primary-60); }
+            50% { opacity: 1; box-shadow: 0 0 14px var(--fancy-primary-80); }
+            100% { opacity: 0.6; box-shadow: 0 0 6px var(--fancy-primary-60); }
         }
-        .party-queue-artist {
+        .fancy-queue-artist {
             color: #b3b3b3;
             font-size: 0.95rem;
             white-space: nowrap;
@@ -1038,7 +1038,7 @@
             text-overflow: ellipsis;
         }
         /* --- AMBIENT FLOAT ANIMATION (HARDWARE ACCELERATED) --- */
-        .party-fs-bg {
+        .fancy-fs-bg {
             animation: ambientFloat 32s ease-in-out infinite alternate;
         }
         @keyframes ambientFloat {
@@ -1055,35 +1055,35 @@
         .btn-icon {
             filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
         }
-        .party-title, .party-artist, .progress-container, .volume-container, #fs-clock {
+        .fancy-title, .fancy-artist, .progress-container, .volume-container, #fs-clock {
             text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
 
         /* --- RESPONSIVE LAYOUT --- */
         @media (max-width: 1100px) {
-            #party-fs-overlay {
+            #fancy-fs-overlay {
                 grid-template-columns: 1.4fr 1.8fr 1fr;
             }
-            .party-cover {
+            .fancy-cover {
                 width: 34vh;
                 height: 34vh;
             }
         }
         @media (max-width: 860px) {
-            #party-fs-overlay {
+            #fancy-fs-overlay {
                 grid-template-columns: 1.2fr 1fr !important;
             }
-            #party-fs-overlay.lyrics-collapsed,
-            #party-fs-overlay.lyrics-off,
-            #party-fs-overlay.no-lyrics {
+            #fancy-fs-overlay.lyrics-collapsed,
+            #fancy-fs-overlay.lyrics-off,
+            #fancy-fs-overlay.no-lyrics {
                 grid-template-columns: 1fr 0px !important;
             }
             .col-queue { display: none; }
-            .party-clock { font-size: 1.6rem; top: 30px; }
+            .fancy-clock { font-size: 1.6rem; top: 30px; }
             #fs-close-btn { top: 25px; left: 25px; width: 42px; height: 42px; }
         }
         @media (max-width: 560px) {
-            #party-fs-overlay {
+            #fancy-fs-overlay {
                 grid-template-columns: 1fr !important;
             }
             .col-lyrics { display: none; }
@@ -1092,8 +1092,8 @@
 
         /* --- REDUCED MOTION (accessibility / weak GPUs) --- */
         @media (prefers-reduced-motion: reduce) {
-            .party-fs-bg,
-            .party-fs-bg.active-bg {
+            .fancy-fs-bg,
+            .fancy-fs-bg.active-bg {
                 animation: none !important;
                 transition: opacity 0.3s ease !important;
                 filter: blur(150px) brightness(var(--bg-brightness, 0.4)) saturate(1.4);
@@ -1107,8 +1107,8 @@
             .lyrics-scroll-container { transition-duration: 0.01ms !important; }
             .lyric-line { transition-duration: 0.01ms !important; filter: none !important; }
             .progress-bar-fill, .volume-bar-fill { transition: background 1s ease !important; }
-            .glow-wrap, .party-queue-item, .party-queue-info { animation: none !important; }
-            .party-queue-item.current .eq-bars .bar {
+            .glow-wrap, .fancy-queue-item, .fancy-queue-info { animation: none !important; }
+            .fancy-queue-item.current .eq-bars .bar {
                 animation: none !important;
                 height: 60% !important;
             }
@@ -1121,9 +1121,9 @@
 
     overlay.innerHTML = `
         <button id="fs-close-btn" title="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-        <div id="party-fs-bg1" class="party-fs-bg active-bg"></div>
-        <div id="party-fs-bg2" class="party-fs-bg"></div>
-        <div class="party-clock" id="fs-clock">00:00</div>
+        <div id="fancy-fs-bg1" class="fancy-fs-bg active-bg"></div>
+        <div id="fancy-fs-bg2" class="fancy-fs-bg"></div>
+        <div class="fancy-clock" id="fs-clock">00:00</div>
         <div class="col-player" id="p-col"></div>
         <div class="col-lyrics" id="l-col">
             <div class="no-lyrics-hint" id="no-lyric-msg">Lade Lyrics...</div>
@@ -1152,8 +1152,8 @@
     
     let activeBgIndex = 1;
     function updateBackground(coverUrl) {
-        const bg1 = document.getElementById("party-fs-bg1");
-        const bg2 = document.getElementById("party-fs-bg2");
+        const bg1 = document.getElementById("fancy-fs-bg1");
+        const bg2 = document.getElementById("fancy-fs-bg2");
         if (!bg1 || !bg2) return;
         
         const img = new Image();
@@ -1354,8 +1354,8 @@
                 width: ${size}px;
                 height: ${size}px;
                 border-radius: 50%;
-                background: var(--party-primary);
-                box-shadow: 0 0 10px var(--party-primary);
+                background: var(--fancy-primary);
+                box-shadow: 0 0 10px var(--fancy-primary);
                 transform: translate(-50%, -50%);
                 animation: burstParticle 0.85s ease-out forwards;
                 --tx: ${tx}px;
@@ -1381,24 +1381,24 @@
                 <button class="btn-ambient-top ${isKaraokeEnabled ? 'btn-active' : ''}" id="btn-karaoke-toggle" title="Karaoke Modus" style="transition: all 0.4s ease; overflow: hidden; opacity: ${lyricsEnabled && isLyricsSynced ? 1 : 0}; pointer-events: ${lyricsEnabled && isLyricsSynced ? 'auto' : 'none'}; transform: scale(${lyricsEnabled && isLyricsSynced ? 1 : 0.8}); max-width: ${lyricsEnabled && isLyricsSynced ? '44px' : '0px'}; display: ${lyricsEnabled && isLyricsSynced ? 'flex' : 'none'};">${Icons.karaoke}</button>
             </div>
 
-            <div class="party-cover-eq-wrap">
-                <div class="party-title-eq ${isPlayingNow ? '' : 'paused'}" id="p-title-eq"><span></span><span></span><span></span><span></span></div>
+            <div class="fancy-cover-eq-wrap">
+                <div class="fancy-title-eq ${isPlayingNow ? '' : 'paused'}" id="p-title-eq"><span></span><span></span><span></span><span></span></div>
             </div>
 
-            <div class="party-cover-wrapper" id="cover-wrap">
-                <img class="party-cover ${isPlayingNow ? 'is-playing' : ''}" id="p-cover" src="${trackInfo.cover}" alt="Cover">
+            <div class="fancy-cover-wrapper" id="cover-wrap">
+                <img class="fancy-cover ${isPlayingNow ? 'is-playing' : ''}" id="p-cover" src="${trackInfo.cover}" alt="Cover">
             </div>
             
-            <div class="party-meta">
+            <div class="fancy-meta">
                 <div class="scroll-wrap">
-                    <div class="party-title" id="p-title" onclick="Spicetify.Platform.History.push('${(trackInfo.albumUri || trackInfo.uri).replace('spotify:', '/').replace(/:/g, '/')}'); document.getElementById('party-fs-overlay').classList.remove('active');" style="cursor: pointer;" title="Zum Album gehen">${escapeHtml(trackInfo.title)}</div>
+                    <div class="fancy-title" id="p-title" onclick="Spicetify.Platform.History.push('${(trackInfo.albumUri || trackInfo.uri).replace('spotify:', '/').replace(/:/g, '/')}'); document.getElementById('fancy-fs-overlay').classList.remove('active');" style="cursor: pointer;" title="Zum Album gehen">${escapeHtml(trackInfo.title)}</div>
                 </div>
                 <div class="scroll-wrap">
-                    <div class="party-artist" id="p-artist">
+                    <div class="fancy-artist" id="p-artist">
                         ${trackInfo.artists && trackInfo.artists.length > 0 
                             ? trackInfo.artists.map((a, idx) => {
                                 const separator = idx < trackInfo.artists.length - 1 ? '<span style="color: rgba(255,255,255,0.6); pointer-events: none;">, </span>' : '';
-                                return `<span class="artist-link" onclick="if('${a.uri}') { Spicetify.Platform.History.push('${a.uri}'.replace('spotify:', '/').replace(/:/g, '/')); document.getElementById('party-fs-overlay').classList.remove('active'); }" title="Zum Künstler gehen">${escapeHtml(a.name)}</span>${separator}`;
+                                return `<span class="artist-link" onclick="if('${a.uri}') { Spicetify.Platform.History.push('${a.uri}'.replace('spotify:', '/').replace(/:/g, '/')); document.getElementById('fancy-fs-overlay').classList.remove('active'); }" title="Zum Künstler gehen">${escapeHtml(a.name)}</span>${separator}`;
                             }).join("")
                             : "Unbekannt"
                         }
@@ -1415,7 +1415,7 @@
                 <span id="p-total-time">${formatTime(Player.getDuration())}</span>
             </div>
             
-            <div class="party-controls">
+            <div class="fancy-controls">
                 <button class="btn-icon" id="btn-shuffle">${Icons.shuffle}</button>
                 <button class="btn-icon" id="btn-prev">${Icons.prev}</button>
                 <button class="btn-icon btn-main" id="btn-play">${Icons.play}</button>
@@ -1476,7 +1476,7 @@
         
         document.getElementById("btn-lyric-toggle").onclick = () => {
             lyricsEnabled = !lyricsEnabled;
-            localStorage.setItem("party_fs_lyrics", lyricsEnabled.toString());
+            localStorage.setItem("fancy_fs_lyrics", lyricsEnabled.toString());
             document.getElementById("btn-lyric-toggle").classList.toggle("btn-active", lyricsEnabled);
             updateKaraokeBtnVisibility();
             if (!lyricsEnabled) {
@@ -1491,7 +1491,7 @@
 
         document.getElementById("btn-ambient-toggle").onclick = () => {
             ambientEnabled = !ambientEnabled;
-            localStorage.setItem("party_fs_ambient", ambientEnabled.toString());
+            localStorage.setItem("fancy_fs_ambient", ambientEnabled.toString());
             document.getElementById("btn-ambient-toggle").classList.toggle("btn-active", ambientEnabled);
             overlay.classList.toggle("ambient-off", !ambientEnabled);
         };
@@ -1499,7 +1499,7 @@
         if (kBtn) {
             kBtn.onclick = () => {
                 isKaraokeEnabled = !isKaraokeEnabled;
-                localStorage.setItem("party_fs_karaoke", isKaraokeEnabled.toString());
+                localStorage.setItem("fancy_fs_karaoke", isKaraokeEnabled.toString());
                 kBtn.classList.toggle("btn-active", isKaraokeEnabled);
             };
         }
@@ -1749,7 +1749,7 @@
                 }
             }
         } catch (e) {
-            console.warn("PartyFullscreen: LRCLIB fetch failed", e);
+            console.warn("FancyFullscreen: LRCLIB fetch failed", e);
         }
         return null;
     }
@@ -1789,7 +1789,7 @@
                 }
             }
         } catch (e) {
-            console.warn("PartyFullscreen: fetch color-lyrics error", e);
+            console.warn("FancyFullscreen: fetch color-lyrics error", e);
         }
 
         try {
@@ -1801,7 +1801,7 @@
                 }
             }
         } catch (e) {
-            console.warn("PartyFullscreen: CosmosAsync color-lyrics error", e);
+            console.warn("FancyFullscreen: CosmosAsync color-lyrics error", e);
         }
 
         return null;
@@ -1847,7 +1847,7 @@
                 }
             }
         } catch (e) {
-            console.warn("PartyFullscreen: Platform LyricsAPI failed", e);
+            console.warn("FancyFullscreen: Platform LyricsAPI failed", e);
         }
 
         const trackId = trackInfo.uri.split(":")[2];
@@ -1915,14 +1915,14 @@
     function applyPrimaryColor(rawRgb) {
         const finalRgb = enforceMinimumBrightness(rawRgb);
         
-        overlay.style.setProperty('--party-primary', `rgb(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]})`);
-        overlay.style.setProperty('--party-primary-10', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.10)`);
-        overlay.style.setProperty('--party-primary-15', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.15)`);
-        overlay.style.setProperty('--party-primary-20', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.20)`);
-        overlay.style.setProperty('--party-primary-40', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.40)`);
-        overlay.style.setProperty('--party-primary-60', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.60)`);
-        overlay.style.setProperty('--party-primary-80', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.80)`);
-        overlay.style.setProperty('--party-primary-rgb', `${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}`);
+        overlay.style.setProperty('--fancy-primary', `rgb(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]})`);
+        overlay.style.setProperty('--fancy-primary-10', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.10)`);
+        overlay.style.setProperty('--fancy-primary-15', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.15)`);
+        overlay.style.setProperty('--fancy-primary-20', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.20)`);
+        overlay.style.setProperty('--fancy-primary-40', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.40)`);
+        overlay.style.setProperty('--fancy-primary-60', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.60)`);
+        overlay.style.setProperty('--fancy-primary-80', `rgba(${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}, 0.80)`);
+        overlay.style.setProperty('--fancy-primary-rgb', `${finalRgb[0]}, ${finalRgb[1]}, ${finalRgb[2]}`);
     }
 
     function rgbToHsl(r, g, b) {
@@ -1970,7 +1970,7 @@
 
     async function extractQueueCoverColor(imgSrc) {
         const fallbackColor = (() => {
-            const curPrimary = overlay.style.getPropertyValue('--party-primary-rgb');
+            const curPrimary = overlay.style.getPropertyValue('--fancy-primary-rgb');
             if (curPrimary) {
                 const parts = curPrimary.split(',').map(n => parseInt(n.trim(), 10));
                 if (parts.length === 3 && !parts.some(isNaN)) return parts;
@@ -2062,7 +2062,7 @@
     }
 
     async function applyQueueColor(uid, cover, nextCover, albumUri, nextAlbumUri) {
-        const el = document.querySelector(`.party-queue-item[data-uid="${uid}"]`);
+        const el = document.querySelector(`.fancy-queue-item[data-uid="${uid}"]`);
         if (!el) return;
         
         el.style.setProperty('--glow-color', 'transparent');
@@ -2184,20 +2184,20 @@
         const uid = `queue-item-${offsetIndex}`;
         const realUid = track.uid || track.contextTrack?.uid || "";
         const durationMs = track.durationMs || track.duration?.milliseconds || (track.metadata?.duration ? parseInt(track.metadata.duration, 10) : 0) || track.contextTrack?.metadata?.duration;
-        const durationHtml = durationMs ? `<span class="party-queue-duration">${formatTime(durationMs)}</span>` : '';
+        const durationHtml = durationMs ? `<span class="fancy-queue-duration">${formatTime(durationMs)}</span>` : '';
         
         return `
-            <div class="party-queue-item ${isCurrent ? 'current' : 'clickable'}" data-index="${offsetIndex}" data-uri="${uri}" data-uid="${uid}" data-track-uid="${realUid}" data-cover-url="${cover}" data-album-uri="${albumUri}">
+            <div class="fancy-queue-item ${isCurrent ? 'current' : 'clickable'}" data-index="${offsetIndex}" data-uri="${uri}" data-uid="${uid}" data-track-uid="${realUid}" data-cover-url="${cover}" data-album-uri="${albumUri}">
                 <div class="queue-chain-graphics">
                     <div class="glow-wrap">
                         <div class="glow-bg"></div>
                         ${getParticleHTML(isLast)}
-                        <img class="party-queue-cover" src="${cover}">
+                        <img class="fancy-queue-cover" src="${cover}">
                     </div>
                 </div>
-                <div class="party-queue-info">
+                <div class="fancy-queue-info">
                     <div style="display:flex; align-items:center;">
-                        <div class="party-queue-track">${escapeHtml(title)}</div>
+                        <div class="fancy-queue-track">${escapeHtml(title)}</div>
                         ${isCurrent ? (() => {
                             const d1 = (0.9  + Math.random() * 0.5).toFixed(2);
                             const d2 = (1.2  + Math.random() * 0.6).toFixed(2);
@@ -2206,7 +2206,7 @@
                         })() : ''}
                         ${durationHtml}
                     </div>
-                    <div class="party-queue-artist">${escapeHtml(artist)}</div>
+                    <div class="fancy-queue-artist">${escapeHtml(artist)}</div>
                 </div>
             </div>`;
     }
@@ -2233,7 +2233,7 @@
                 if (menu) menu.style.display = 'none';
             });
             document.addEventListener('contextmenu', (ev) => {
-                if (!ev.target.closest('.party-queue-item')) {
+                if (!ev.target.closest('.fancy-queue-item')) {
                     if (menu) menu.style.display = 'none';
                 }
             });
@@ -2285,7 +2285,7 @@
     function buildQueueUI() {
         const trackInfo = getTrackInfo();
         const nextTracksRaw = Spicetify.Queue?.getQueue?.().nextTracks || Spicetify.Queue?.nextTracks || [];
-        let html = '<div class="party-queue-wrapper">';
+        let html = '<div class="fancy-queue-wrapper">';
         
         const nextTracksFiltered = nextTracksRaw.filter(track => {
             const title = (track.title || track.name || track.contextTrack?.metadata?.title || track.metadata?.title || "").trim().toLowerCase();
@@ -2309,7 +2309,7 @@
         // Pre-load the first 10 songs for maximum speed
         if (trackInfo) {
             applyQueueColor(`queue-item-0`, trackInfo.cover || getQueueCover(trackInfo), nextFifty.length > 0 ? (nextFifty[0].cover || getQueueCover(nextFifty[0])) : null, trackInfo.albumUri || trackInfo.uri, nextFifty.length > 0 ? (nextFifty[0].albumUri || nextFifty[0].uri) : null);
-            const firstItemEl = qCol.querySelector('.party-queue-item[data-uid="queue-item-0"]');
+            const firstItemEl = qCol.querySelector('.fancy-queue-item[data-uid="queue-item-0"]');
             if (firstItemEl) firstItemEl.setAttribute('data-color-loaded', 'true');
         }
         
@@ -2321,7 +2321,7 @@
             const uid = `queue-item-${index+1}`;
             applyQueueColor(uid, cover, nextCover, track.albumUri || track.uri, isLast ? null : (nextFifty[index+1].albumUri || nextFifty[index+1].uri));
             
-            const itemEl = qCol.querySelector(`.party-queue-item[data-uid="${uid}"]`);
+            const itemEl = qCol.querySelector(`.fancy-queue-item[data-uid="${uid}"]`);
             if (itemEl) itemEl.setAttribute('data-color-loaded', 'true');
         }
         
@@ -2353,7 +2353,7 @@
             queueObserver.disconnect();
         }
 
-        qCol.querySelectorAll('.party-queue-item').forEach(item => {
+        qCol.querySelectorAll('.fancy-queue-item').forEach(item => {
             queueObserver.observe(item);
             const isClickable = item.classList.contains('clickable');
             
@@ -2416,7 +2416,7 @@
     }
 
     function centerCurrentQueueItem(smooth = false) {
-        const currentEl = qCol.querySelector('.party-queue-item.current');
+        const currentEl = qCol.querySelector('.fancy-queue-item.current');
         if (currentEl) {
             const containerHeight = qCol.clientHeight;
             const elementOffset = currentEl.offsetTop;
@@ -2704,7 +2704,7 @@
                         fetchAndRenderLyrics();
                         triggerSparkleBurst();
                     } else if (isCoverChange) {
-                        const coverEl = document.querySelector(".party-cover");
+                        const coverEl = document.querySelector(".fancy-cover");
                         if (coverEl) coverEl.src = trackInfo.cover;
                         updateBackground(trackInfo.cover);
                     }
@@ -2712,10 +2712,10 @@
             }
 
             if (overlay.classList.contains("active")) {
-                const firstItem = qCol.querySelector('.party-queue-item:first-child');
+                const firstItem = qCol.querySelector('.fancy-queue-item:first-child');
                 if (isSongChange && firstItem) {
                     firstItem.classList.add('slide-out');
-                    const siblings = Array.from(qCol.querySelectorAll('.party-queue-item')).slice(1);
+                    const siblings = Array.from(qCol.querySelectorAll('.fancy-queue-item')).slice(1);
                     siblings.forEach(el => el.classList.add('slide-up'));
                     setTimeout(() => {
                         buildQueueUI();
@@ -2845,12 +2845,12 @@
         try {
             fastTick();
         } catch (err) {
-            console.error("PartyFullscreen: fastTick error", err);
+            console.error("FancyFullscreen: fastTick error", err);
         }
         animationHandle = requestAnimationFrame(animationLoop);
     }
 
-    window.PartyFullscreenToggle = toggleFullscreen;
+    window.FancyFullscreenToggle = toggleFullscreen;
 
     function isFsTarget(el) {
         if (!el) return false;
@@ -2865,7 +2865,7 @@
     }
 
     const interceptFsEvent = (e) => {
-        if (isFsTarget(e.target) && isPartyFsEnabled) {
+        if (isFsTarget(e.target) && isFancyFsEnabled) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
@@ -2883,7 +2883,7 @@
     if (Spicetify.Platform?.History?.listen) {
         unlistenHistory = Spicetify.Platform.History.listen((location) => {
             if (location.pathname.includes("/fullscreen") || location.pathname.includes("/npv")) {
-                if (isPartyFsEnabled && !overlay.classList.contains("active")) {
+                if (isFancyFsEnabled && !overlay.classList.contains("active")) {
                     toggleFullscreen();
                 }
             }
@@ -2891,7 +2891,7 @@
     }
 
     const onFullscreenChange = () => {
-        if (document.fullscreenElement && isPartyFsEnabled && !overlay.classList.contains("active")) {
+        if (document.fullscreenElement && isFancyFsEnabled && !overlay.classList.contains("active")) {
             toggleFullscreen();
         }
     };
@@ -2971,7 +2971,7 @@
     };
     window.addEventListener("keydown", onKeyDown);
 
-    window.__partyFsCleanup = () => {
+    window.__fancyFsCleanup = () => {
         stopTimers();
         if (queueObserver) queueObserver.disconnect();
         if (playerResizeObserver) playerResizeObserver.disconnect();
@@ -2983,9 +2983,9 @@
         document.removeEventListener("fullscreenchange", onFullscreenChange);
         window.removeEventListener("keydown", onKeyDown);
         if (typeof unlistenHistory === "function") unlistenHistory();
-        const el = document.getElementById("party-fs-overlay");
+        const el = document.getElementById("fancy-fs-overlay");
         if (el) el.remove();
-        const styleEl = document.getElementById("party-fs-styles");
+        const styleEl = document.getElementById("fancy-fs-styles");
         if (styleEl) styleEl.remove();
     };
 })();
