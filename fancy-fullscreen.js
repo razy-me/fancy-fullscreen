@@ -1214,6 +1214,8 @@
     let currentTrackURI = null;
     let currentCoverUrl = null;
     let lastQueueHash = "";
+    let lyricsRequestId = 0;
+    let lyricsAbortController = null;
     
     let isSkipping = false;
     let isDraggingVolume = false; 
@@ -1245,7 +1247,8 @@
     const onPlayerStateChange = () => syncControlStates();
     const onSongChange = () => {
         syncControlStates();
-        syncQueuePoller();
+        lastQueueHash = "";
+        syncQueuePoller(true);
     };
 
     function startTimers() {
@@ -1305,6 +1308,7 @@
             return {
                 title: item.name,
                 artists: artists,
+                album: item.album?.name || "",
                 cover: item.album?.images?.[0]?.url || "",
                 uri: item.uri,
                 albumUri: item.album?.uri || ""
@@ -1319,6 +1323,7 @@
             return {
                 title: track.metadata.title || track.name || "Unbekannt",
                 artists: artists,
+                album: track.metadata.album_title || track.album?.name || "",
                 cover: track.metadata.image_url || getQueueCover(track) || "",
                 uri: track.uri || track.id || "",
                 albumUri: track.metadata.album_uri || track.album?.uri || ""
@@ -1454,9 +1459,13 @@
         document.getElementById("btn-prev").onclick = () => {
             if (typeof Player.back === "function") Player.back(); 
             else Player.previous();
+            setTimeout(() => { lastQueueHash = ""; syncQueuePoller(true); }, 100);
         };
         
-        document.getElementById("btn-next").onclick = () => Player.next();
+        document.getElementById("btn-next").onclick = () => {
+            Player.next();
+            setTimeout(() => { lastQueueHash = ""; syncQueuePoller(true); }, 100);
+        };
         document.getElementById("btn-play").onclick = () => { 
             const btnPlay = document.getElementById("btn-play");
             if (btnPlay && btnPlay.dataset.toggling === "true") return;
@@ -1719,89 +1728,185 @@
         return result;
     }
 
-    async function fetchLrclibLyrics(trackInfo) {
+    async function getSpotifyToken() {
         try {
-            const title = trackInfo.title || "";
+            if (Spicetify.Platform?.AuthorizationAPI?.getAccessToken) {
+                const token = await Spicetify.Platform.AuthorizationAPI.getAccessToken();
+                if (token) return token;
+            }
+        } catch (_) {}
+        try {
+            if (Spicetify.Platform?.Session?.accessToken) {
+                return Spicetify.Platform.Session.accessToken;
+            }
+        } catch (_) {}
+        try {
+            if (Spicetify.Platform?.Session?.session?.accessToken) {
+                return Spicetify.Platform.Session.session.accessToken;
+            }
+        } catch (_) {}
+        return "";
+    }
+
+    function cleanTrackTitle(title) {
+        if (!title) return "";
+        return title
+            .replace(/\s*-\s*Remaster(ed)?\s*\d*/gi, "")
+            .replace(/\s*-\s*Radio\s*Edit/gi, "")
+            .replace(/\s*-\s*Live(\s*at\s*.*)?/gi, "")
+            .replace(/\s*-\s*Single\s*Version/gi, "")
+            .replace(/\s*-\s*Original\s*Mix/gi, "")
+            .replace(/\s*\(Remaster(ed)?\s*\d*\)/gi, "")
+            .replace(/\s*\(Radio\s*Edit\)/gi, "")
+            .replace(/\s*\(feat\..*?\)/gi, "")
+            .replace(/\s*\[feat\..*?\]/gi, "")
+            .trim();
+    }
+
+    async function fetchLrclibLyrics(trackInfo, signal) {
+        try {
+            const rawTitle = trackInfo.title || "";
+            const cleanTitle = cleanTrackTitle(rawTitle);
             const artist = (trackInfo.artists && trackInfo.artists[0]?.name) || "";
             const album = trackInfo.album || "";
-            const durationSec = Math.round(Player.getDuration() / 1000) || 0;
-            
-            let queryUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(title)}&artist_name=${encodeURIComponent(artist)}`;
-            if (album) {
-                queryUrl += `&album_name=${encodeURIComponent(album)}`;
-            }
-            if (durationSec > 0) {
-                queryUrl += `&duration=${durationSec}`;
-            }
-            
-            const resp = await fetch(queryUrl);
-            if (resp.ok) {
-                const data = await resp.json();
-                if (data.syncedLyrics) {
-                    const lines = parseLrcToLines(data.syncedLyrics);
-                    if (lines.length > 0) return lines;
+            const expectedDuration = Math.round(Player.getDuration() / 1000) || 0;
+
+            const queries = [
+                { title: cleanTitle, album: album, useDuration: true },
+                { title: cleanTitle, album: "", useDuration: true },
+                { title: rawTitle, album: album, useDuration: true },
+                { title: cleanTitle, album: "", useDuration: false },
+                { title: rawTitle, album: "", useDuration: false }
+            ];
+
+            const seenUrls = new Set();
+
+            for (const q of queries) {
+                if (signal?.aborted) return null;
+                if (!q.title || !artist) continue;
+                let queryUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(q.title)}&artist_name=${encodeURIComponent(artist)}`;
+                if (q.album) {
+                    queryUrl += `&album_name=${encodeURIComponent(q.album)}`;
                 }
-                if (data.plainLyrics) {
-                    const plainLines = data.plainLyrics.split("\n").map(l => l.trim()).filter(Boolean);
-                    if (plainLines.length > 0) {
-                        return plainLines.map(words => ({ startTimeMs: "0", words }));
+                if (q.useDuration && expectedDuration > 0) {
+                    queryUrl += `&duration=${expectedDuration}`;
+                }
+
+                if (seenUrls.has(queryUrl)) continue;
+                seenUrls.add(queryUrl);
+
+                const resp = await fetch(queryUrl, { signal });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    
+                    // Validate duration to prevent mismatches (e.g. wrong song from same/other artist)
+                    if (expectedDuration > 0 && typeof data.duration === "number" && data.duration > 0) {
+                        const diff = Math.abs(data.duration - expectedDuration);
+                        if (diff > 12) {
+                            console.warn(`FancyFullscreen: Rejecting LRCLIB mismatch for "${q.title}". Expected duration ${expectedDuration}s, got ${data.duration}s.`);
+                            continue;
+                        }
+                    }
+
+                    if (data.syncedLyrics) {
+                        const lines = parseLrcToLines(data.syncedLyrics);
+                        if (lines.length > 0) {
+                            console.log(`FancyFullscreen: Found synced lyrics via LRCLIB for "${q.title}"`);
+                            return lines;
+                        }
+                    }
+                    if (data.plainLyrics) {
+                        const plainLines = data.plainLyrics.split("\n").map(l => l.trim()).filter(Boolean);
+                        if (plainLines.length > 0) {
+                            console.log(`FancyFullscreen: Found plain lyrics via LRCLIB for "${q.title}"`);
+                            return plainLines.map(words => ({ startTimeMs: "0", words }));
+                        }
                     }
                 }
             }
         } catch (e) {
-            console.warn("FancyFullscreen: LRCLIB fetch failed", e);
+            if (e.name !== 'AbortError') {
+                console.warn("FancyFullscreen: LRCLIB fetch failed", e);
+            }
         }
         return null;
     }
 
-    async function fetchSpotifyLyrics(trackId) {
-        if (!trackId) return null;
-        const url = `https://spclient.wg.spotify.com/color-lyrics/v2/track/${trackId}?format=json&vocalRemoval=false&market=from_token`;
+    async function fetchSpotifyLyrics(trackId, trackUri, signal) {
+        if (!trackId && !trackUri) return null;
+        if (signal?.aborted) return null;
         
-        let token = "";
-        try {
-            if (Spicetify.Platform?.AuthorizationAPI?.getAccessToken) {
-                token = await Spicetify.Platform.AuthorizationAPI.getAccessToken();
-            }
-        } catch (_) {}
-        if (!token) {
+        // 1. Try Spicetify.Platform.LyricsAPI / PlayerAPI if available
+        if (trackUri) {
             try {
-                if (Spicetify.Platform?.Session?.accessToken) {
-                    token = Spicetify.Platform.Session.accessToken;
+                if (Spicetify.Platform?.LyricsAPI?.getLyrics) {
+                    const data = await Spicetify.Platform.LyricsAPI.getLyrics(trackUri);
+                    const lines = data?.lyrics?.lines || data?.lines;
+                    if (Array.isArray(lines) && lines.length > 0) {
+                        console.log("FancyFullscreen: Found lyrics via Spicetify.Platform.LyricsAPI");
+                        return lines;
+                    }
+                }
+            } catch (_) {}
+
+            try {
+                if (Spicetify.Platform?.LyricsAPI?.get) {
+                    const data = await Spicetify.Platform.LyricsAPI.get(trackUri);
+                    const lines = data?.lyrics?.lines || data?.lines;
+                    if (Array.isArray(lines) && lines.length > 0) {
+                        console.log("FancyFullscreen: Found lyrics via LyricsAPI.get");
+                        return lines;
+                    }
                 }
             } catch (_) {}
         }
 
+        const id = trackId || (trackUri ? trackUri.split(":")[2] : null);
+        if (!id || signal?.aborted) return null;
+
+        const token = await getSpotifyToken();
         const headers = {
-            "app-platform": "WebPlayer"
+            "app-platform": "WebPlayer",
+            "spotify-app-version": "1.3.0",
+            "content-type": "application/json"
         };
         if (token) {
             headers["authorization"] = `Bearer ${token}`;
         }
 
-        try {
-            const resp = await fetch(url, { headers });
-            if (resp.ok) {
-                const data = await resp.json();
-                const lines = data?.lyrics?.lines;
-                if (Array.isArray(lines) && lines.length > 0) {
-                    return lines;
-                }
-            }
-        } catch (e) {
-            console.warn("FancyFullscreen: fetch color-lyrics error", e);
-        }
+        const endpoints = [
+            `https://spclient.wg.spotify.com/color-lyrics/v2/track/${id}?format=json&vocalRemoval=false&market=from_token`,
+            `https://spclient.wg.spotify.com/color-lyrics/v2/track/${id}`
+        ];
 
-        try {
-            if (Spicetify.CosmosAsync?.get) {
-                const data = await Spicetify.CosmosAsync.get(url, null, headers);
-                const lines = data?.lyrics?.lines;
-                if (Array.isArray(lines) && lines.length > 0) {
-                    return lines;
+        for (const url of endpoints) {
+            if (signal?.aborted) return null;
+            // Try CosmosAsync first as it handles client internal proxy & authentication automatically
+            try {
+                if (Spicetify.CosmosAsync?.get) {
+                    const data = await Spicetify.CosmosAsync.get(url, null, headers);
+                    const lines = data?.lyrics?.lines;
+                    if (Array.isArray(lines) && lines.length > 0) {
+                        console.log("FancyFullscreen: Found lyrics via Spicetify.CosmosAsync");
+                        return lines;
+                    }
                 }
+            } catch (_) {}
+
+            // Fallback to direct fetch
+            try {
+                const resp = await fetch(url, { headers, signal });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const lines = data?.lyrics?.lines;
+                    if (Array.isArray(lines) && lines.length > 0) {
+                        console.log("FancyFullscreen: Found lyrics via direct Spotify fetch");
+                        return lines;
+                    }
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') return null;
             }
-        } catch (e) {
-            console.warn("FancyFullscreen: CosmosAsync color-lyrics error", e);
         }
 
         return null;
@@ -1814,6 +1919,14 @@
             updateKaraokeBtnVisibility();
             return;
         }
+
+        // Cancel previous pending lyrics fetch to prevent race conditions when skipping songs rapidly
+        if (lyricsAbortController) {
+            lyricsAbortController.abort();
+        }
+        lyricsAbortController = new AbortController();
+        const currentReqId = ++lyricsRequestId;
+        const signal = lyricsAbortController.signal;
 
         lyricsBox.style.transition = "opacity 0.3s ease";
         lyricsBox.style.opacity = "0.3";
@@ -1836,29 +1949,17 @@
             return;
         }
 
-        // Try Platform LyricsAPI first if present
-        try {
-            if (Spicetify.Platform?.LyricsAPI?.getLyrics) {
-                const data = await Spicetify.Platform.LyricsAPI.getLyrics(trackInfo.uri);
-                const lines = data?.lyrics?.lines || data?.lines || [];
-                if (lines.length > 0) {
-                    renderLyrics(lines);
-                    return;
-                }
-            }
-        } catch (e) {
-            console.warn("FancyFullscreen: Platform LyricsAPI failed", e);
-        }
-
         const trackId = trackInfo.uri.split(":")[2];
         
-        // 1. Try Spotify Official Color-Lyrics
-        let lines = await fetchSpotifyLyrics(trackId);
+        // 1. Try Spotify Official Color-Lyrics & Internal APIs first
+        let lines = await fetchSpotifyLyrics(trackId, trackInfo.uri, signal);
+        if (currentReqId !== lyricsRequestId) return;
         
-        // 2. If Spotify Official fails or has no lyrics, use LRCLIB fallback
+        // 2. If Spotify Official fails or has no lyrics, use validated LRCLIB fallback
         if (!lines || lines.length === 0) {
-            lines = await fetchLrclibLyrics(trackInfo);
+            lines = await fetchLrclibLyrics(trackInfo, signal);
         }
+        if (currentReqId !== lyricsRequestId) return;
 
         if (lines && lines.length > 0) {
             renderLyrics(lines);
@@ -2408,6 +2509,8 @@
                 } finally {
                     qCol.style.pointerEvents = "auto";
                     isSkipping = false;
+                    lastQueueHash = "";
+                    setTimeout(() => syncQueuePoller(true), 80);
                 }
             };
 
@@ -2526,7 +2629,7 @@
                 const viewHeight = lCol.clientHeight || window.innerHeight;
                 
                 if (duration > 0 && totalHeight > viewHeight) {
-                    const scrollableDistance = totalHeight - (viewHeight / 2);
+                    const scrollableDistance = totalHeight - viewHeight;
                     const currentProgressRatio = Math.max(0, Math.min(1, currentMs / duration));
                         
                     const calculatedOffset = scrollableDistance * currentProgressRatio;
@@ -2646,8 +2749,8 @@
         }
     }
 
-    function syncQueuePoller() {
-        if (isSkipping) return;
+    function syncQueuePoller(force = false) {
+        if (isSkipping && !force) return;
         
         const trackInfo = getTrackInfo();
         const currentUri = trackInfo?.uri || "";
@@ -2655,7 +2758,7 @@
         const nextUris = nextTracks.slice(0, 10).map(t => t.uri || t.id).join("");
         const newHash = currentUri + nextUris + (trackInfo?.cover || "");
 
-        if (newHash !== lastQueueHash) {
+        if (newHash !== lastQueueHash || force) {
             lastQueueHash = newHash;
 
             const activeContext = Player.data?.context?.uri || null;
