@@ -87,7 +87,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: radial-gradient(circle at 25% 40%, rgba(var(--fancy-primary-rgb), 0.18) 0%, transparent 60%), radial-gradient(circle at 80% 60%, rgba(var(--fancy-primary-rgb), 0.10) 0%, transparent 55%), #060608;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.15) 50px, transparent 100px), radial-gradient(circle at 25% 40%, rgba(var(--fancy-primary-rgb), 0.18) 0%, transparent 60%), radial-gradient(circle at 80% 60%, rgba(var(--fancy-primary-rgb), 0.10) 0%, transparent 55%), #060608;
             z-index: 999999 !important;
             display: grid;
             grid-template-columns: 2fr 2.2fr 1.3fr;
@@ -433,8 +433,8 @@
         }
         .scroll-wrap.is-scrolling {
             justify-content: flex-start;
-            mask-image: linear-gradient(to right, black 85%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%);
         }
         .fancy-title {
             font-size: 2.3rem;
@@ -472,8 +472,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 22px;
-            margin-bottom: 12px;
+            height: 18px;
+            margin-top: -2px;
+            margin-bottom: 14px;
             z-index: 10;
         }
         .fancy-title-eq {
@@ -541,11 +542,11 @@
         
         .is-scrolling #p-title, 
         .is-scrolling #p-artist {
-            animation: scrollLinearMarquee var(--scroll-dur, 6s) linear infinite alternate;
+            animation: scrollLinearMarquee var(--scroll-dur, 7s) cubic-bezier(0.42, 0, 0.58, 1) infinite alternate;
         }
         @keyframes scrollLinearMarquee {
-            0%, 18% { transform: translateX(0); }
-            82%, 100% { transform: translateX(var(--scroll-dist)); }
+            0%, 25% { transform: translateX(0); }
+            75%, 100% { transform: translateX(var(--scroll-dist)); }
         }
         
         .progress-container {
@@ -822,22 +823,22 @@
             font-weight: 700;
             line-height: 1.4;
             text-align: center;
-            opacity: 0.25;
-            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, filter 0.4s ease !important;
-            transform: scale(0.9);
-            filter: blur(1.5px);
+            opacity: 0.42;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease, filter 0.35s ease !important;
+            transform: scale(0.93);
+            filter: blur(0.4px);
             cursor: pointer;
             transform-origin: center;
             max-width: 90%;
         }
         .lyric-line.next-up {
-            opacity: 0.65;
+            opacity: 0.72;
             transform: scale(0.98);
-            filter: blur(0.2px);
-            transition: all 0.4s ease !important;
+            filter: none;
+            transition: all 0.35s ease !important;
         }
         .lyric-word {
-            background: linear-gradient(to right, #fff var(--word-fill, 0%), #999999 var(--word-fill, 0%));
+            background: linear-gradient(to right, #fff var(--word-fill, 0%), #b3b3b3 var(--word-fill, 0%));
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -845,9 +846,9 @@
             display: inline-block;
         }
         .lyric-line.past {
-            opacity: 0.4;
-            transform: scale(0.92);
-            filter: blur(0.5px);
+            opacity: 0.48;
+            transform: scale(0.94);
+            filter: none;
         }
         .lyric-line.past .lyric-word {
             --word-fill: 100% !important;
@@ -857,9 +858,9 @@
         }
         .lyric-line.active {
             opacity: 1;
-            transform: scale(1.08);
-            filter: blur(0) drop-shadow(0 0 22px var(--fancy-primary-80)) drop-shadow(0 4px 14px rgba(0,0,0,0.6));
-            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease, filter 1s ease !important;
+            transform: scale(1.06);
+            filter: drop-shadow(0 0 14px var(--fancy-primary-60)) drop-shadow(0 3px 10px rgba(0,0,0,0.7));
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s ease, filter 0.8s ease !important;
         }
         .lyric-line.unsynced-style {
             opacity: 1;
@@ -918,10 +919,10 @@
             display: flex;
             flex-direction: column;
             padding: 0 20px;
-            background: rgba(8, 8, 12, 0.55);
-            backdrop-filter: blur(28px) saturate(190%);
-            -webkit-backdrop-filter: blur(28px) saturate(190%);
-            border-left: 1px solid rgba(255, 255, 255, 0.06);
+            background: linear-gradient(to right, rgba(12, 12, 18, 0.25), rgba(8, 8, 14, 0.45));
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            border-left: 1px solid rgba(255, 255, 255, 0.04);
             overflow-y: auto;
             scrollbar-width: none;
             scroll-behavior: auto;
@@ -931,6 +932,18 @@
         }
         
         .fancy-queue-wrapper { background: transparent; border-radius: 16px; padding: 24px; box-shadow: none; margin-top: 71px; }
+        .fancy-queue-end {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 24px 0;
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            user-select: none;
+        }
         .fancy-queue-item { 
             display: flex; 
             align-items: center; 
@@ -957,7 +970,7 @@
         .fancy-queue-item.slide-out { animation: queueItemOut 0.38s cubic-bezier(0.25, 1, 0.5, 1) forwards !important; }
         @keyframes queueItemOut { 0% { transform: translateX(0) scale(1); opacity: 1; } 100% { transform: translateX(-50px) scale(0.95); opacity: 0; } }
         .glow-wrap { position: relative; width: 48px; height: 48px; z-index: 2; display: flex; justify-content: center; align-items: center; transition: transform 0.2s ease !important; }
-        .glow-bg { position: absolute; width: 48px; height: 48px; border-radius: 6px; box-shadow: 0 0 20px 4px var(--glow-color); opacity: 0; z-index: 1; transition: opacity 0.3s ease, box-shadow 0.3s ease !important; pointer-events: none; }
+        .glow-bg { position: absolute; width: 48px; height: 48px; border-radius: 6px; box-shadow: 0 0 14px 2px var(--glow-color); opacity: 0; z-index: 1; transition: opacity 0.3s ease, box-shadow 0.3s ease !important; pointer-events: none; }
         .fancy-queue-cover { width: 48px; height: 48px; border-radius: 6px; object-fit: cover; position: relative; z-index: 10; border: 1px solid rgba(255,255,255,0.1); }
         .fancy-queue-info { display: flex; flex-direction: column; justify-content: center; min-height: 48px; flex-grow: 1; overflow: hidden; transition: transform 0.2s ease !important; transform-origin: left center; }
         .particles-container { position: absolute; top: 50%; left: 50%; pointer-events: none; z-index: 0; overflow: visible; }
@@ -2209,7 +2222,7 @@
             el.style.setProperty('--next-glow-color', `rgb(${finalNextRgb[0]}, ${finalNextRgb[1]}, ${finalNextRgb[2]})`);
             el.style.setProperty('--mix-color', `rgb(${mixRgb[0]}, ${mixRgb[1]}, ${mixRgb[2]})`);
             const glowbg = el.querySelector('.glow-bg');
-            if (glowbg) glowbg.style.opacity = '0.75';
+            if (glowbg) glowbg.style.opacity = '0.55';
         } catch (e) {
             el.style.setProperty('--glow-color', 'transparent');
             el.style.setProperty('--next-glow-color', 'transparent');
@@ -2403,6 +2416,10 @@
             const isLast = (index === nextFifty.length - 1);
             html += buildQueueItemNode(track, offset, false, isLast);
         });
+        
+        if (nextFifty.length < 8) {
+            html += `<div class="fancy-queue-end"><span>—</span><span>Ende der Warteschlange</span><span>—</span></div>`;
+        }
         
         html += '</div>';
         qCol.innerHTML = html;
