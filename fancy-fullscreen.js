@@ -2890,6 +2890,8 @@
     }
 
     const onMouseMove = (e) => {
+        if (!overlay.classList.contains("active") && !isDraggingProgress && !isDraggingVolume) return;
+
         if (overlay.classList.contains("active")) {
             resetIdleTimer();
         }
@@ -2921,6 +2923,8 @@
     };
 
     const onMouseUp = () => {
+        if (!isDraggingProgress && !isDraggingVolume) return;
+
         if (isDraggingProgress) {
             isDraggingProgress = false;
             if (uiEls.pBar) {
@@ -2985,19 +2989,16 @@
     }
 
     const interceptFsEvent = (e) => {
-        if (isFsTarget(e.target) && isFancyFsEnabled) {
+        if (!isFancyFsEnabled || !e.target) return;
+        if (isFsTarget(e.target)) {
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            if (e.type === "click") {
-                toggleFullscreen();
-            }
+            toggleFullscreen();
         }
     };
 
     document.addEventListener("click", interceptFsEvent, true);
-    document.addEventListener("mousedown", interceptFsEvent, true);
-    document.addEventListener("pointerdown", interceptFsEvent, true);
 
     let unlistenHistory = null;
     if (Spicetify.Platform?.History?.listen) {
